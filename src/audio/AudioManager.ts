@@ -165,25 +165,62 @@ export class AudioManager {
     }
   }
 
+  private htmlVoice: HTMLAudioElement | null = null;
+
   async playVoice(id: VoiceLineId): Promise<number> {
     if (this.muted) return 0;
     await this.unlock();
+    this.stopVoice();
+
+    // Prefer HTMLAudioElement — most reliable for wav playback in Electron
+    const url = this.voiceUrls[id];
+    try {
+      const el = new Audio(url);
+      el.volume = Math.min(1, Math.max(0, this.master));
+      el.playbackRate = 0.9;
+      this.htmlVoice = el;
+      const durationMs = await new Promise<number>((resolve) => {
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          const d = Number.isFinite(el.duration) && el.duration > 0 ? el.duration * 1000 / 0.9 : 700;
+          resolve(d);
+        };
+        el.onended = done;
+        el.onerror = () => {
+          settled = true;
+          resolve(0);
+        };
+        void el.play().then(() => {
+          // duration may be known after metadata
+          window.setTimeout(() => {
+            if (!settled && el.paused) done();
+          }, 3000);
+        }).catch(() => {
+          settled = true;
+          resolve(0);
+        });
+      });
+      if (durationMs > 0) return durationMs;
+    } catch {
+      /* fall through */
+    }
+
+    // WebAudio buffer fallback
     const key = `voice:${id}`;
     let buf = this.buffers.get(key);
     if (!buf) {
       try {
-        buf = await this.loadBuffer(key, this.voiceUrls[id]);
+        buf = await this.loadBuffer(key, url);
       } catch {
-        // Fallback: speak via Web Speech if wav missing
         return this.speakFallback(id);
       }
     }
-    this.stopVoice();
     const ctx = this.ensureCtx();
     const src = ctx.createBufferSource();
     const gain = ctx.createGain();
     src.buffer = buf;
-    // Slightly lower pitch for gruff Ben feel
     src.playbackRate.value = 0.88;
     gain.gain.value = this.master;
     src.connect(gain);
@@ -196,7 +233,6 @@ export class AudioManager {
         resolve(duration);
       };
       src.start();
-      // safety
       window.setTimeout(() => resolve(duration), duration + 80);
     });
   }
@@ -208,6 +244,15 @@ export class AudioManager {
       /* ignore */
     }
     this.currentVoice = null;
+    if (this.htmlVoice) {
+      try {
+        this.htmlVoice.pause();
+        this.htmlVoice.src = '';
+      } catch {
+        /* ignore */
+      }
+      this.htmlVoice = null;
+    }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }

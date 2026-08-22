@@ -1,26 +1,23 @@
 import { CharacterController } from '../character/CharacterController';
 import { AnimationController } from '../animation/AnimationController';
 import { AudioManager, VoiceLineId } from '../audio/AudioManager';
-import { createSpeechProvider, LocalStubSpeechProvider, SpeechProvider } from '../speech';
+import { createSpeechProvider, SpeechProvider } from '../speech';
 import { VoiceActivityDetector, MicPipelineStatus } from '../speech/VoiceActivityDetector';
 import { LocalBenConversation, BenReply } from '../conversation/LocalBenConversation';
 import { AppSettings } from '../main/preload';
-import { CharacterState } from '../character/types';
-
-export type VoiceMode = 'idle' | 'phone' | 'repeat';
 
 export interface VoicePipelineCallbacks {
   onStatus: (status: MicPipelineStatus) => void;
   onTranscript?: (text: string, final: boolean) => void;
   onError?: (message: string) => void;
   onResponseText?: (text: string) => void;
-  onPhoneChanged?: (onCall: boolean) => void;
+  onReady?: () => void;
 }
 
 /**
- * Classic Talking Ben phone pipeline:
- * Phone button → ring → Ben picks up → "Ben." → listen continuously →
- * after you speak, random Yes/No/Ben/laugh/Ugh with mouth sync.
+ * Always-on conversation:
+ * mic → detect you finished speaking → Ben replies with sound → listen again
+ * No buttons required after start.
  */
 export class VoicePipeline {
   private character: CharacterController;
@@ -31,10 +28,10 @@ export class VoicePipeline {
   private vad: VoiceActivityDetector | null = null;
   private callbacks: VoicePipelineCallbacks;
   private settings: AppSettings;
-  private mode: VoiceMode = 'idle';
-  private status: MicPipelineStatus = 'idle';
+  private active = false;
   private busy = false;
   private interim = '';
+  private heardSpeech = false;
   private unsubs: Array<() => void> = [];
 
   constructor(
@@ -52,23 +49,15 @@ export class VoicePipeline {
   }
 
   isOnCall(): boolean {
-    return this.mode === 'phone';
+    return this.active;
   }
 
   getStatus(): MicPipelineStatus {
-    return this.status;
+    return this.busy ? 'speaking' : this.active ? 'listening' : 'idle';
   }
 
   updateSettings(settings: AppSettings): void {
-    const speechChanged = settings.speechProvider !== this.settings.speechProvider;
     this.settings = settings;
-    if (speechChanged) {
-      void this.speech.abort();
-      this.unsubs.forEach((u) => u());
-      this.unsubs = [];
-      this.speech = createSpeechProvider(settings.speechProvider);
-      this.bindSpeech();
-    }
     this.vad?.setSensitivity(settings.micSensitivity);
   }
 
@@ -76,16 +65,15 @@ export class VoicePipeline {
     this.unsubs.push(
       this.speech.onResult((result) => {
         this.callbacks.onTranscript?.(result.text, result.isFinal);
-        if (result.isFinal && result.text) {
+        if (result.text) {
           this.interim = result.text;
-        } else if (result.text) {
-          this.interim = result.text;
+          this.heardSpeech = true;
         }
       }),
     );
     this.unsubs.push(
       this.speech.onError((err) => {
-        if (!/no-speech|aborted/i.test(err.message)) {
+        if (!/no-speech|aborted|network/i.test(err.message)) {
           this.callbacks.onError?.(err.message);
         }
       }),
@@ -93,175 +81,124 @@ export class VoicePipeline {
   }
 
   private setStatus(status: MicPipelineStatus): void {
-    this.status = status;
     this.callbacks.onStatus(status);
   }
 
-  /** Toggle classic phone call mode */
-  async togglePhoneCall(): Promise<void> {
-    if (this.mode === 'phone') {
-      await this.endPhoneCall();
-    } else {
-      await this.startPhoneCall();
-    }
-  }
-
-  async startPhoneCall(): Promise<void> {
-    if (this.mode === 'phone') return;
+  /** Start automatic listen/respond loop (call after user gesture). */
+  async startAutoConversation(): Promise<void> {
+    if (this.active) return;
     try {
       await this.audio.unlock();
-      this.audio.play('phone_ring');
-      this.character.setScene('living');
-      this.character.setState('phone');
-      this.mode = 'phone';
-      this.callbacks.onPhoneChanged?.(true);
+      await this.audio.preload();
 
-      // Brief ring then answer
-      await delay(700);
+      this.character.setScene('living');
+      this.audio.play('phone_ring');
+      this.character.setState('phone');
+      this.active = true;
+
+      await delay(650);
       const hello = this.conversation.answerCall();
       await this.speakLine(hello);
 
-      await this.startListeningLoop();
+      await this.beginListenLoop();
+      this.callbacks.onReady?.();
     } catch (err) {
-      this.callbacks.onError?.(
-        err instanceof Error ? err.message : 'Could not start phone call / microphone.',
-      );
-      this.mode = 'idle';
+      this.active = false;
       this.character.setState('read');
       this.setStatus('idle');
-      this.callbacks.onPhoneChanged?.(false);
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 
-  async endPhoneCall(): Promise<void> {
-    const bye = this.conversation.hangUp();
-    await this.stopListening();
-    this.mode = 'idle';
-    this.callbacks.onPhoneChanged?.(false);
-    this.character.setState('phone');
-    await this.speakLine(bye);
-    this.character.setState('read');
-    this.setStatus('idle');
-  }
-
-  /** Hold-to-talk style outside phone (optional) */
-  async beginPushToTalk(): Promise<void> {
-    if (this.busy || this.mode === 'phone') return;
-    this.interim = '';
-    try {
-      this.character.setState('listen');
-      this.setStatus('listening');
-      await this.speech.start({ continuous: false });
-    } catch (err) {
-      this.callbacks.onError?.(
-        err instanceof Error ? err.message : 'Microphone unavailable.',
-      );
-      this.setStatus('idle');
-      this.character.setState('read');
-    }
-  }
-
-  async endPushToTalk(): Promise<void> {
-    if (this.mode === 'phone') return;
-    await this.speech.stop();
-    const text = this.interim.trim();
-    this.interim = '';
-    if (text) await this.handleUtterance(text);
-    else {
-      this.setStatus('idle');
-      this.character.setState('read');
-    }
-  }
-
-  async submitText(text: string): Promise<void> {
-    const stub = this.speech as LocalStubSpeechProvider;
-    if (stub.id === 'local-stub' && typeof stub.injectTranscript === 'function') {
-      await stub.start();
-      stub.injectTranscript(text);
-      await stub.stop();
-    }
-    await this.handleUtterance(text);
-  }
-
-  async playPokeLine(line: VoiceLineId, state: CharacterState = 'poke'): Promise<void> {
-    this.character.react(state, 900);
-    this.character.startTalking();
-    const dur = await this.audio.playVoice(line);
-    const t0 = performance.now();
-    const timer = window.setInterval(() => {
-      const p = Math.min(1, (performance.now() - t0) / Math.max(1, dur));
-      this.character.setViseme(this.animation.visemeFromText(line, p));
-    }, 40);
-    await delay(dur);
-    window.clearInterval(timer);
-    this.character.stopTalking();
-  }
-
-  async stopListening(): Promise<void> {
+  async stop(): Promise<void> {
+    this.active = false;
     this.vad?.stop();
     this.vad = null;
     await this.speech.abort();
     this.audio.stopVoice();
     this.busy = false;
+    this.setStatus('idle');
+    this.character.setState('read');
   }
 
   dispose(): void {
-    void this.stopListening();
+    void this.stop();
     this.unsubs.forEach((u) => u());
     this.unsubs = [];
   }
 
-  private async startListeningLoop(): Promise<void> {
+  /** Kept for typed fallback / tests */
+  async submitText(text: string): Promise<void> {
+    await this.handleUtterance(text || 'hey');
+  }
+
+  async playPokeLine(line: VoiceLineId): Promise<void> {
+    await this.speakLine({
+      text: line,
+      emotion: 'poke',
+      lineId: line,
+    });
+  }
+
+  private async beginListenLoop(): Promise<void> {
     this.vad?.stop();
+    this.heardSpeech = false;
+    this.interim = '';
+
     this.vad = new VoiceActivityDetector({
       deviceId: this.settings.microphoneDeviceId,
-      sensitivity: this.settings.micSensitivity,
-      silenceMs: 850,
-      minSpeechMs: 250,
+      sensitivity: Math.max(0.25, this.settings.micSensitivity),
+      silenceMs: 750,
+      minSpeechMs: 220,
       onStatus: (s) => {
-        if (!this.busy && this.mode === 'phone') this.setStatus(s);
+        if (!this.busy && this.active) this.setStatus(s);
       },
       onSpeechStart: () => {
-        if (this.busy || this.mode !== 'phone') return;
+        if (this.busy || !this.active) return;
+        this.heardSpeech = true;
         this.character.setState('listen');
-        this.interim = '';
-        void this.speech.start({ continuous: true });
+        this.setStatus('listening');
+        // Best-effort speech recognition (optional — Ben mainly reacts to VAD)
+        void this.speech.start({ continuous: true }).catch(() => undefined);
       },
       onSpeechEnd: () => {
-        if (this.busy || this.mode !== 'phone') return;
-        void this.speech.stop();
-        const text = this.interim.trim() || 'hey';
+        if (this.busy || !this.active) return;
+        void this.speech.stop().catch(() => undefined);
+        const text = this.interim.trim();
         this.interim = '';
-        void this.handleUtterance(text);
+        // Classic Ben: respond whenever you finish talking (even with empty transcript)
+        if (this.heardSpeech) {
+          this.heardSpeech = false;
+          void this.handleUtterance(text || 'hey');
+        }
       },
       onError: (err) => this.callbacks.onError?.(err.message),
     });
+
     await this.vad.start();
     this.character.setState('phone');
     this.setStatus('listening');
   }
 
   private async handleUtterance(text: string): Promise<void> {
-    if (this.busy) return;
+    if (this.busy || !this.active) return;
     this.busy = true;
     this.setStatus('processing');
     this.character.setState('think');
+
     try {
       const response = await this.conversation.respond(text);
       this.callbacks.onResponseText?.(response.text);
       await this.speakLine(response);
     } catch (err) {
-      this.callbacks.onError?.(err instanceof Error ? err.message : 'Conversation failed.');
-      this.character.setState('confused');
-      await delay(600);
+      this.callbacks.onError?.(err instanceof Error ? err.message : 'Reply failed.');
+      // Still play a fallback sound so the loop never feels broken
+      await this.speakLine(this.conversation.answerCall());
     } finally {
       this.busy = false;
-      if (this.mode === 'phone' && this.vad?.isRunning()) {
-        this.setStatus('listening');
+      if (this.active) {
         this.character.setState('phone');
-      } else {
-        this.setStatus('idle');
-        if (this.mode !== 'phone') this.character.setState('read');
+        this.setStatus('listening');
       }
     }
   }
@@ -269,6 +206,7 @@ export class VoicePipeline {
   private async speakLine(response: BenReply): Promise<void> {
     this.setStatus('speaking');
     this.character.showReplyFrame(response.lineId);
+
     if (response.lineId === 'no') this.character.setState('angry');
     else if (response.lineId === 'ha_ha_ha') this.character.setState('laugh');
     else if (response.lineId === 'yes') this.character.setState('happy');
@@ -276,18 +214,21 @@ export class VoicePipeline {
     else this.character.setState('talk');
 
     this.character.startTalking();
+
     const t0 = performance.now();
-    const estPromise = this.audio.playVoice(response.lineId);
     const timer = window.setInterval(() => {
-      const elapsed = performance.now() - t0;
-      const progress = Math.min(1, elapsed / 900);
-      const viseme = this.animation.visemeFromText(response.text, progress);
-      this.character.setViseme(viseme);
-    }, 45);
-    const dur = await estPromise;
-    window.clearInterval(timer);
-    if (dur > 900) await delay(Math.min(400, dur - 900));
-    this.character.stopTalking();
+      const progress = Math.min(1, (performance.now() - t0) / 800);
+      this.character.setViseme(this.animation.visemeFromText(response.text, progress));
+    }, 40);
+
+    try {
+      const dur = await this.audio.playVoice(response.lineId);
+      if (dur > 50) await delay(Math.min(dur, 2500));
+      else await delay(700);
+    } finally {
+      window.clearInterval(timer);
+      this.character.stopTalking();
+    }
   }
 }
 
