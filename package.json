@@ -79,7 +79,8 @@
         "AppImage"
       ],
       "category": "Game"
-    }
+    },
+    "publish": null
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
