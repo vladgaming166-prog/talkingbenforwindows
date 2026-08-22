@@ -92,7 +92,7 @@ export class CharacterController {
               resolve();
             };
             img.onerror = () => resolve();
-            img.src = `../assets/scene/${key}.png`;
+            img.src = `../assets/scene/${key}.jpg`;
           }),
       ),
     );
