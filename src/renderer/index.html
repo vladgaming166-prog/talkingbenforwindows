@@ -9,48 +9,64 @@
 </head>
 <body>
   <div id="app">
-    <header class="top-bar">
-      <div class="brand">Talking Ben</div>
-      <div class="window-controls">
-        <button type="button" id="btn-minimize" title="Minimize" aria-label="Minimize">─</button>
-        <button type="button" id="btn-maximize" title="Maximize" aria-label="Maximize">□</button>
-        <button type="button" id="btn-close" title="Exit" aria-label="Exit">✕</button>
-      </div>
+    <header class="chrome-top">
+      <button type="button" id="btn-camera" class="circle-btn" title="Camera" aria-label="Camera">
+        <span class="ico cam"></span>
+      </button>
+      <button type="button" id="btn-lab-banner" class="lab-banner" title="Visit Ben's lab">
+        Visit <em>BEN's</em> lab
+      </button>
+      <button type="button" id="btn-info" class="circle-btn" title="Settings" aria-label="Settings">
+        <span class="ico info">i</span>
+      </button>
     </header>
 
     <main class="stage">
-      <canvas id="ben-canvas" aria-label="Ben the talking dog"></canvas>
+      <canvas id="ben-canvas" aria-label="Ben"></canvas>
       <div id="mic-indicator"></div>
       <div class="subtitle" id="subtitle" hidden></div>
+      <div id="call-banner" class="call-banner" hidden>On a call — speak to Ben</div>
     </main>
 
-    <footer class="controls">
-      <button type="button" id="btn-mic" class="control primary" title="Hold to talk">
-        <span class="ctrl-icon" aria-hidden="true">Mic</span>
-        <span class="ctrl-label">Hold to talk</span>
+    <footer class="chrome-bottom" id="living-controls">
+      <button type="button" id="btn-drink" class="circle-btn big" title="Drink" aria-label="Drink">
+        <span class="ico bottle"></span>
       </button>
-      <button type="button" id="btn-conversation" class="control" title="Conversation mode" aria-pressed="false">
-        <span class="ctrl-icon" aria-hidden="true">Chat</span>
-        <span class="ctrl-label">Conversation</span>
+      <button type="button" id="btn-food" class="circle-btn big" title="Food" aria-label="Food">
+        <span class="ico food"></span>
       </button>
-      <button type="button" id="btn-mute" class="control" title="Mute" aria-pressed="false">
-        <span class="ctrl-icon" aria-hidden="true">Vol</span>
-        <span class="ctrl-label">Mute</span>
+      <button type="button" id="btn-talk" class="circle-btn big" title="Hold to talk" aria-label="Hold to talk">
+        <span class="ico talk"></span>
       </button>
-      <button type="button" id="btn-fullscreen" class="control" title="Fullscreen">
-        <span class="ctrl-icon" aria-hidden="true">Full</span>
-        <span class="ctrl-label">Fullscreen</span>
+      <button type="button" id="btn-phone" class="circle-btn big phone" title="Phone call" aria-label="Phone call">
+        <span class="ico phone"></span>
       </button>
-      <button type="button" id="btn-settings" class="control" title="Settings">
-        <span class="ctrl-icon" aria-hidden="true">Set</span>
-        <span class="ctrl-label">Settings</span>
+      <button type="button" id="btn-lab" class="circle-btn side-lab" title="Lab" aria-label="Lab">
+        <span class="ico flask"></span>
+      </button>
+    </footer>
+
+    <footer class="chrome-bottom lab-controls" id="lab-controls" hidden>
+      <button type="button" class="circle-btn tube" data-tube="0" style="--c:#e8c44a" title="Yellow"></button>
+      <button type="button" class="circle-btn tube" data-tube="1" style="--c:#4caf50" title="Green"></button>
+      <button type="button" class="circle-btn tube" data-tube="2" style="--c:#4ec3ff" title="Blue"></button>
+      <button type="button" class="circle-btn tube" data-tube="3" style="--c:#e85aad" title="Pink"></button>
+      <button type="button" class="circle-btn tube" data-tube="4" style="--c:#3d6fb5" title="Dark blue"></button>
+      <button type="button" id="btn-home" class="circle-btn big" title="Living room" aria-label="Living room">
+        <span class="ico chair"></span>
       </button>
     </footer>
 
     <form id="text-fallback" class="text-fallback" hidden>
-      <input type="text" id="text-input" placeholder="Type to talk to Ben…" maxlength="200" autocomplete="off" />
+      <input type="text" id="text-input" placeholder="Type to talk on the phone…" maxlength="200" autocomplete="off" />
       <button type="submit">Say</button>
     </form>
+
+    <div class="win-tray">
+      <button type="button" id="btn-minimize" title="Minimize">─</button>
+      <button type="button" id="btn-maximize" title="Maximize">□</button>
+      <button type="button" id="btn-close" title="Exit">✕</button>
+    </div>
   </div>
   <script src="app.js"></script>
 </body>

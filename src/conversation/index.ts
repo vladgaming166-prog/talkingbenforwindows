@@ -11,4 +11,5 @@ export function createConversationProvider(id = 'local-ben'): ConversationProvid
 
 export type { ConversationProvider, ConversationResponse } from './ConversationProvider';
 export { LocalBenConversation } from './LocalBenConversation';
+export type { BenReply } from './LocalBenConversation';
 export { OptionalOnlineConversation } from './OptionalOnlineConversation';

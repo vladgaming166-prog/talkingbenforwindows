@@ -1,10 +1,11 @@
 import { CharacterController } from '../character/CharacterController';
-import { CharacterState } from '../character/types';
-import { AudioManager, SoundId } from '../audio/AudioManager';
+import { AudioManager } from '../audio/AudioManager';
+import { VoicePipeline } from '../speech/VoicePipeline';
 
 export interface InteractionContext {
   character: CharacterController;
   audio: AudioManager;
+  pipeline: VoicePipeline;
   showToast: (message: string) => void;
 }
 
@@ -14,9 +15,6 @@ export interface InteractionHandler {
   handle(region: string, ctx: InteractionContext): void | Promise<void>;
 }
 
-/**
- * Modular mouse/touch interaction system — add handlers without rewriting core.
- */
 export class InteractionSystem {
   private handlers: InteractionHandler[] = [];
   private ctx: InteractionContext;
@@ -30,14 +28,9 @@ export class InteractionSystem {
     this.handlers.push(handler);
   }
 
-  unregister(id: string): void {
-    this.handlers = this.handlers.filter((h) => h.id !== id);
-  }
-
   async handleClick(region: string): Promise<void> {
     if (performance.now() < this.cooldownUntil) return;
-    this.cooldownUntil = performance.now() + 350;
-
+    this.cooldownUntil = performance.now() + 320;
     const matches = this.handlers.filter(
       (h) => !h.regions || h.regions.includes(region) || h.regions.includes('*'),
     );
@@ -45,7 +38,7 @@ export class InteractionSystem {
       try {
         await handler.handle(region, this.ctx);
       } catch {
-        this.ctx.showToast('Something went wrong with that interaction.');
+        this.ctx.showToast('That interaction failed.');
       }
     }
   }
@@ -54,53 +47,94 @@ export class InteractionSystem {
 export function createDefaultInteractions(): InteractionHandler[] {
   return [
     {
-      id: 'face-pet',
+      id: 'face-poke',
       regions: ['face'],
-      handle(_region, ctx) {
-        ctx.audio.play('ui-click');
-        const reactions: CharacterState[] = ['happy', 'laugh', 'surprised'];
-        const pick = reactions[Math.floor(Math.random() * reactions.length)];
-        ctx.character.react(pick, 1400);
-        if (pick === 'laugh') ctx.audio.play('react-laugh');
-        if (pick === 'surprised') ctx.audio.play('react-surprise');
+      async handle(_r, ctx) {
+        if (ctx.pipeline.isOnCall()) return;
+        await ctx.pipeline.playPokeLine('ow', 'fall');
       },
     },
     {
       id: 'belly-poke',
-      regions: ['belly', 'torso'],
-      handle(_region, ctx) {
-        ctx.audio.play('ui-click');
-        ctx.character.react('surprised', 1000);
-        ctx.audio.play('react-surprise');
+      regions: ['belly'],
+      async handle(_r, ctx) {
+        if (ctx.pipeline.isOnCall()) return;
+        await ctx.pipeline.playPokeLine('ah', 'poke');
       },
     },
     {
-      id: 'phone-tap',
+      id: 'feet-poke',
+      regions: ['feet'],
+      async handle(_r, ctx) {
+        if (ctx.pipeline.isOnCall()) return;
+        await ctx.pipeline.playPokeLine('ouch', 'poke');
+      },
+    },
+    {
+      id: 'hand-poke',
+      regions: ['hand'],
+      async handle(_r, ctx) {
+        if (ctx.pipeline.isOnCall()) return;
+        await ctx.pipeline.playPokeLine('ah', 'poke');
+      },
+    },
+    {
+      id: 'phone-prop',
       regions: ['phone'],
-      handle(_region, ctx) {
-        ctx.audio.play('ui-toggle');
-        ctx.character.react('listen', 1600);
-        ctx.showToast('Ring ring…');
-        window.setTimeout(() => {
-          ctx.character.react('talk', 800);
-        }, 700);
-      },
-    },
-    {
-      id: 'legs-tickle',
-      regions: ['legs'],
-      handle(_region, ctx) {
-        ctx.audio.play('react-laugh');
-        ctx.character.react('laugh', 1200);
-      },
-    },
-    {
-      id: 'background',
-      regions: ['background'],
-      handle(_region, ctx) {
-        ctx.character.react('confused', 900);
-        ctx.audio.play('react-confused' as SoundId);
+      async handle(_r, ctx) {
+        await ctx.pipeline.togglePhoneCall();
       },
     },
   ];
+}
+
+export async function playEat(ctx: InteractionContext): Promise<void> {
+  if (ctx.pipeline.isOnCall()) {
+    ctx.showToast('Hang up first.');
+    return;
+  }
+  ctx.character.setScene('living');
+  ctx.character.setState('eat');
+  ctx.audio.play('eat');
+  await wait(1200);
+  ctx.audio.play('burp');
+  ctx.character.setState('burp');
+  await wait(800);
+  ctx.character.setState('read');
+}
+
+export async function playDrink(ctx: InteractionContext): Promise<void> {
+  if (ctx.pipeline.isOnCall()) {
+    ctx.showToast('Hang up first.');
+    return;
+  }
+  ctx.character.setScene('living');
+  ctx.character.setState('drink');
+  ctx.audio.play('drink');
+  await wait(1100);
+  ctx.audio.play('glass');
+  await wait(200);
+  ctx.audio.play('burp');
+  ctx.character.setState('burp');
+  await wait(900);
+  ctx.character.setState('read');
+}
+
+export async function playLabMix(ctx: InteractionContext, tubeIndex: number): Promise<void> {
+  ctx.character.setScene('lab');
+  ctx.character.setState('lab');
+  ctx.audio.play('ui-click');
+  await wait(350);
+  const kind = (tubeIndex % 3) + 1;
+  ctx.character.setLabReaction(kind);
+  if (kind === 3) ctx.audio.play('boom');
+  else ctx.audio.play('react-surprise');
+  await wait(500);
+  if (kind === 1) await ctx.pipeline.playPokeLine('ha_ha_ha', 'laugh');
+  else if (kind === 2) await ctx.pipeline.playPokeLine('ugh', 'surprised');
+  else await ctx.pipeline.playPokeLine('ow', 'surprised');
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((r) => window.setTimeout(r, ms));
 }
