@@ -23,6 +23,7 @@ jobs:
       - run: npm run dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/upload-artifact@v4
         with:
           name: TalkingBen-Windows
@@ -30,3 +31,4 @@ jobs:
             release/TalkingBen.exe
             release/TalkingBen-Setup.exe
             release/win-unpacked/TalkingBen.exe
+          if-no-files-found: error
