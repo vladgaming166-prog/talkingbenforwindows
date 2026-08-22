@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; font-src 'self' data:;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talking Ben</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <div class="stage-wrap">
+      <canvas id="ben-canvas" aria-label="Ben"></canvas>
+      <div id="mic-indicator"></div>
+      <div class="subtitle" id="subtitle" hidden></div>
+
+      <!-- One tap required by Windows/Electron to unlock mic + audio -->
+      <button type="button" id="tap-start" class="tap-start">
+        <span class="tap-title">Talking Ben</span>
+        <span class="tap-sub">Click anywhere to start</span>
+        <span class="tap-hint">Then just speak — Ben answers automatically</span>
+      </button>
+    </div>
+
+    <div class="win-tray">
+      <button type="button" id="btn-minimize" title="Minimize">─</button>
+      <button type="button" id="btn-maximize" title="Maximize">□</button>
+      <button type="button" id="btn-close" title="Exit">✕</button>
+      <button type="button" id="btn-settings" title="Settings">⚙</button>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
