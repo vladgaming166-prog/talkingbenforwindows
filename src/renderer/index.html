@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; font-src 'self' data:;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talking Ben</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="top-bar">
+      <div class="brand">Talking Ben</div>
+      <div class="window-controls">
+        <button type="button" id="btn-minimize" title="Minimize" aria-label="Minimize">─</button>
+        <button type="button" id="btn-maximize" title="Maximize" aria-label="Maximize">□</button>
+        <button type="button" id="btn-close" title="Exit" aria-label="Exit">✕</button>
+      </div>
+    </header>
+
+    <main class="stage">
+      <canvas id="ben-canvas" aria-label="Ben the talking dog"></canvas>
+      <div id="mic-indicator"></div>
+      <div class="subtitle" id="subtitle" hidden></div>
+    </main>
+
+    <footer class="controls">
+      <button type="button" id="btn-mic" class="control primary" title="Hold to talk">
+        <span class="ctrl-icon" aria-hidden="true">Mic</span>
+        <span class="ctrl-label">Hold to talk</span>
+      </button>
+      <button type="button" id="btn-conversation" class="control" title="Conversation mode" aria-pressed="false">
+        <span class="ctrl-icon" aria-hidden="true">Chat</span>
+        <span class="ctrl-label">Conversation</span>
+      </button>
+      <button type="button" id="btn-mute" class="control" title="Mute" aria-pressed="false">
+        <span class="ctrl-icon" aria-hidden="true">Vol</span>
+        <span class="ctrl-label">Mute</span>
+      </button>
+      <button type="button" id="btn-fullscreen" class="control" title="Fullscreen">
+        <span class="ctrl-icon" aria-hidden="true">Full</span>
+        <span class="ctrl-label">Fullscreen</span>
+      </button>
+      <button type="button" id="btn-settings" class="control" title="Settings">
+        <span class="ctrl-icon" aria-hidden="true">Set</span>
+        <span class="ctrl-label">Settings</span>
+      </button>
+    </footer>
+
+    <form id="text-fallback" class="text-fallback" hidden>
+      <input type="text" id="text-input" placeholder="Type to talk to Ben…" maxlength="200" autocomplete="off" />
+      <button type="submit">Say</button>
+    </form>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

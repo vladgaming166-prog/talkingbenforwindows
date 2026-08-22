@@ -1,0 +1,32 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main, 'cursor/**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run icons
+      - run: npm run build
+      - run: npm test
+      - run: npm run verify:no-ads
+      - run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TalkingBen-Windows
+          path: |
+            release/TalkingBen.exe
+            release/TalkingBen-Setup.exe
+            release/win-unpacked/TalkingBen.exe
