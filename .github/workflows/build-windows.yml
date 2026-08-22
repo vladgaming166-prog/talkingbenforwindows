@@ -15,7 +15,15 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
+      - name: Install dependencies
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5; do
+            npm ci && exit 0
+            echo "npm ci failed (attempt $i), retrying..."
+            sleep $((i * 5))
+          done
+          exit 1
       - run: npm run icons
       - run: npm run build
       - run: npm test
