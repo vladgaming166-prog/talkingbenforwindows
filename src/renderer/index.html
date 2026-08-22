@@ -9,56 +9,44 @@
 </head>
 <body>
   <div id="app">
-    <header class="chrome-top">
-      <button type="button" id="btn-camera" class="circle-btn" title="Camera" aria-label="Camera">
-        <span class="ico cam"></span>
-      </button>
-      <button type="button" id="btn-lab-banner" class="lab-banner" title="Visit Ben's lab">
-        Visit <em>BEN's</em> lab
-      </button>
-      <button type="button" id="btn-info" class="circle-btn" title="Settings" aria-label="Settings">
-        <span class="ico info">i</span>
-      </button>
-    </header>
+    <div class="phone-frame">
+      <header class="top-bar">
+        <div class="lab-strip">
+          <span class="lab-icons"></span>
+          <button type="button" id="btn-lab-banner" class="lab-banner">Visit <em>BEN's</em> lab</button>
+          <span class="lab-tubes"></span>
+        </div>
+        <button type="button" id="btn-camera" class="fab top-left" title="Camera" aria-label="Camera"></button>
+        <button type="button" id="btn-info" class="fab top-right" title="Settings" aria-label="Settings">i</button>
+      </header>
 
-    <main class="stage">
-      <canvas id="ben-canvas" aria-label="Ben"></canvas>
-      <div id="mic-indicator"></div>
-      <div class="subtitle" id="subtitle" hidden></div>
-      <div id="call-banner" class="call-banner" hidden>On a call — speak to Ben</div>
-    </main>
+      <main class="stage">
+        <canvas id="ben-canvas" aria-label="Ben"></canvas>
+        <div id="mic-indicator"></div>
+        <div class="subtitle" id="subtitle" hidden></div>
+        <div id="call-banner" class="call-banner" hidden>Speak now — Ben is listening</div>
+        <button type="button" id="btn-lab" class="fab mid-right flask" title="Lab" aria-label="Lab"></button>
+      </main>
 
-    <footer class="chrome-bottom" id="living-controls">
-      <button type="button" id="btn-drink" class="circle-btn big" title="Drink" aria-label="Drink">
-        <span class="ico bottle"></span>
-      </button>
-      <button type="button" id="btn-food" class="circle-btn big" title="Food" aria-label="Food">
-        <span class="ico food"></span>
-      </button>
-      <button type="button" id="btn-talk" class="circle-btn big" title="Hold to talk" aria-label="Hold to talk">
-        <span class="ico talk"></span>
-      </button>
-      <button type="button" id="btn-phone" class="circle-btn big phone" title="Phone call" aria-label="Phone call">
-        <span class="ico phone"></span>
-      </button>
-      <button type="button" id="btn-lab" class="circle-btn side-lab" title="Lab" aria-label="Lab">
-        <span class="ico flask"></span>
-      </button>
-    </footer>
+      <footer class="bottom-bar" id="living-controls">
+        <button type="button" id="btn-drink" class="fab bottom bottle" title="Drink" aria-label="Drink"></button>
+        <button type="button" id="btn-food" class="fab bottom food" title="Food" aria-label="Food"></button>
+        <button type="button" id="btn-talk" class="fab bottom talk" title="Talk" aria-label="Talk"></button>
+        <button type="button" id="btn-phone" class="fab bottom phone" title="Phone" aria-label="Phone"></button>
+      </footer>
 
-    <footer class="chrome-bottom lab-controls" id="lab-controls" hidden>
-      <button type="button" class="circle-btn tube" data-tube="0" style="--c:#e8c44a" title="Yellow"></button>
-      <button type="button" class="circle-btn tube" data-tube="1" style="--c:#4caf50" title="Green"></button>
-      <button type="button" class="circle-btn tube" data-tube="2" style="--c:#4ec3ff" title="Blue"></button>
-      <button type="button" class="circle-btn tube" data-tube="3" style="--c:#e85aad" title="Pink"></button>
-      <button type="button" class="circle-btn tube" data-tube="4" style="--c:#3d6fb5" title="Dark blue"></button>
-      <button type="button" id="btn-home" class="circle-btn big" title="Living room" aria-label="Living room">
-        <span class="ico chair"></span>
-      </button>
-    </footer>
+      <footer class="bottom-bar lab-bar" id="lab-controls" hidden>
+        <button type="button" class="fab tube" data-tube="0" style="--c:#f0c93a" title="Yellow"></button>
+        <button type="button" class="fab tube" data-tube="1" style="--c:#4caf50" title="Green"></button>
+        <button type="button" class="fab tube" data-tube="2" style="--c:#4ec3ff" title="Cyan"></button>
+        <button type="button" class="fab tube" data-tube="3" style="--c:#e85aad" title="Pink"></button>
+        <button type="button" class="fab tube" data-tube="4" style="--c:#3d6fb5" title="Blue"></button>
+        <button type="button" id="btn-home" class="fab bottom chair" title="Home" aria-label="Living room"></button>
+      </footer>
+    </div>
 
     <form id="text-fallback" class="text-fallback" hidden>
-      <input type="text" id="text-input" placeholder="Type to talk on the phone…" maxlength="200" autocomplete="off" />
+      <input type="text" id="text-input" placeholder="Type while on the phone…" maxlength="200" autocomplete="off" />
       <button type="submit">Say</button>
     </form>
 

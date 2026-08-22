@@ -268,10 +268,12 @@ export class VoicePipeline {
 
   private async speakLine(response: BenReply): Promise<void> {
     this.setStatus('speaking');
+    this.character.showReplyFrame(response.lineId);
     if (response.lineId === 'no') this.character.setState('angry');
     else if (response.lineId === 'ha_ha_ha') this.character.setState('laugh');
     else if (response.lineId === 'yes') this.character.setState('happy');
-    else this.character.setState(response.emotion === 'talk' ? 'talk' : response.emotion);
+    else if (response.lineId === 'ugh') this.character.setState('surprised');
+    else this.character.setState('talk');
 
     this.character.startTalking();
     const t0 = performance.now();
@@ -284,7 +286,6 @@ export class VoicePipeline {
     }, 45);
     const dur = await estPromise;
     window.clearInterval(timer);
-    // Keep animating for actual duration
     if (dur > 900) await delay(Math.min(400, dur - 900));
     this.character.stopTalking();
   }
