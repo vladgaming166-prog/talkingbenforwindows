@@ -1,0 +1,8 @@
+{
+	"modmenu.nameTranslation": "Astral Blaze Client",
+	"modmenu.descriptionTranslation": "Premium lightweight client-side HUD, visual, and performance tools.",
+	"key.category.astralblaze.client": "Astral Blaze",
+	"key.astralblaze.menu": "Open Astral Blaze Menu",
+	"key.astralblaze.hud_editor": "Open HUD Editor",
+	"key.astralblaze.zoom": "Zoom"
+}

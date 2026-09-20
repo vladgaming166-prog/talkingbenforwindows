@@ -1,0 +1,47 @@
+{
+	"schemaVersion": 1,
+	"id": "astralblaze",
+	"version": "${version}",
+	"name": "Astral Blaze Client",
+	"description": "A premium, lightweight Fabric client-side QoL experience for Minecraft 1.21.11. Frosted-glass UI, a visual HUD editor, and legitimate visual/performance features — not a cheat client.",
+	"authors": [
+		"Astral Blaze"
+	],
+	"contact": {
+		"homepage": "https://github.com/vladgaming166-prog/talkingbenforwindows",
+		"sources": "https://github.com/vladgaming166-prog/talkingbenforwindows",
+		"issues": "https://github.com/vladgaming166-prog/talkingbenforwindows/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/astralblaze/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.astralblaze.client.AstralBlazeClient"
+		],
+		"modmenu": [
+			"dev.astralblaze.client.compat.AstralModMenu"
+		]
+	},
+	"mixins": [
+		{
+			"config": "astralblaze.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"recommends": {
+		"modmenu": "*"
+	},
+	"custom": {
+		"modmenu": {
+			"links": {},
+			"update_checker": false
+		}
+	}
+}

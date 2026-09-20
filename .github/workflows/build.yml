@@ -1,0 +1,58 @@
+name: Build Astral Blaze Client
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build 1.21.11
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Verify JAR
+        run: |
+          set -euo pipefail
+          JAR="build/libs/Astral-Blaze-Client-1.0.0+1.21.11.jar"
+          test -f "$JAR"
+          echo "JAR size: $(wc -c < "$JAR") bytes"
+          unzip -l "$JAR" | grep -E 'fabric.mod.json|astralblaze.mixins.json|dev/astralblaze/client/AstralBlazeClient.class'
+
+      - name: Create release ZIP
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp "build/libs/Astral-Blaze-Client-1.0.0+1.21.11.jar" dist/Astral-Blaze-Client-1.0.0+1.21.11.jar
+          cat > dist/README.txt <<'EOF'
+Astral Blaze Client 1.0.0
+Minecraft 1.21.11 / Fabric
+
+Place the JAR into .minecraft/mods together with Fabric API.
+Open the client with Right Shift. See README.md for details.
+EOF
+          cd dist
+          zip -r ../Astral-Blaze-Client-1.21.11.zip Astral-Blaze-Client-1.0.0+1.21.11.jar README.txt
+          cd ..
+          unzip -l Astral-Blaze-Client-1.21.11.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astral-Blaze-Client-1.21.11
+          path: Astral-Blaze-Client-1.21.11.zip
+          if-no-files-found: error

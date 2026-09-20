@@ -1,0 +1,22 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "dev.astralblaze.client.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"TitleScreenMixin",
+		"PauseScreenMixin",
+		"GameRendererMixin",
+		"LightTextureMixin",
+		"GuiMixin",
+		"ScreenEffectRendererMixin",
+		"LevelRendererMixin",
+		"ParticleEngineMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
